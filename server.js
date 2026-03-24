@@ -19,6 +19,9 @@ const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"
 
 io.on("connection", (socket) => {
   console.log("socket io connected....", socket.id);
+  socket.emit("connected", {message: `user ${socket.id} connected!!`})
+
+  orderHandler(io, socket);
 });
 
 // Middleware
