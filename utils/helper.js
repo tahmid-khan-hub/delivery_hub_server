@@ -20,3 +20,17 @@ export function generateOrderId() {
     
     return `ORD-${year}${month}${day}-${random}`;
 }
+
+export function calculateTotals(items) {
+    const subTotal = items.reduce((sum, item) => sum + (item.price*item.quantity), 0);
+    const tax = subTotal*0.10;
+    const deliveryFee = 35.00;
+    const total = subTotal + tax + deliveryFee;
+
+    return { 
+        subTotal: Math.round(subTotal*100)/100, 
+        tax: Math.round(tax*100)/100,
+        deliveryFee,
+        totalAmount: Math.round(total*100)/100
+    }
+}
