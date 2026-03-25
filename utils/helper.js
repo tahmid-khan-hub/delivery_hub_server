@@ -34,3 +34,30 @@ export function calculateTotals(items) {
         totalAmount: Math.round(total*100)/100
     }
 }
+
+export function createOrderDocument(orderData, orderId, totals) {
+    return {
+        orderId,
+        customerName: orderData.customerName.trim(),
+        customerPhone: orderData.customerPhone.trim(),
+        customerAddress: orderData.customerAddress.trim(),
+        items: orderData.items,
+        subTotal: totals.subTotal,
+        tax: totals.tax,
+        deliveryFee: totals.deliveryFee,
+        totalAmount: totals.totalAmount,
+        specialNotes: orderData.specialNotes || '',
+        paymentMethod: orderData.paymentMethod || 'cash',
+        paymentStatus: 'pending',
+        status: 'pending',
+        statusHistory: [{
+            status: 'pending',
+            timestamp: new Date(),
+            by: 'customer',
+            note: 'Order placed'
+        }],
+        estimatedTime: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+    }
+}
