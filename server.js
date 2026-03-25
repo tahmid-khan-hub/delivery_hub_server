@@ -7,6 +7,7 @@ import cors from 'cors';
 import { connectDB, getCollection, closeDB } from './config/database.js';
 import { Server } from "socket.io";
 import { createServer } from 'http';
+import { orderHandler } from './socket/orderHandler.js';
 
 // Load environment variables
 dotenv.config();
