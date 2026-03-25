@@ -1,3 +1,5 @@
+import { validateOrder } from "../utils/helper";
+
 export const orderHandler = (io, socket) => {
     console.log("working smooth!!!!!!!!!!!!!", socket.id);
 
@@ -8,6 +10,7 @@ export const orderHandler = (io, socket) => {
         try {
             console.log(`placed order from ${socket.id}`);
             const validation = validateOrder(data);
+            if(!validation.valid) return Callback({ success: false, message: validation.message })
         } catch (error) {
             console.log(error);
         }
