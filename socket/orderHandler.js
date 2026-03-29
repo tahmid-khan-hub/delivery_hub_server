@@ -49,4 +49,39 @@ export const orderHandler = (io, socket) => {
         }
     })
 
+    // Cancel order
+    socket.on("cancelOrder", async(data, Callback) => {
+        try {
+            const ordersCollection = getCollection('orders')
+            const order = await ordersCollection.findOne({ orderId: data.orderId })
+
+            if(!order) return Callback({ success: false, message: "Order not found" })
+
+            if(!['pending', 'confirmed'].includes(order.status)) return Callback({ success: false, message: "Can not cancel the order" });
+
+            await ordersCollection.updateOne(
+                { orderId: data.orderId },
+                {
+                    $set: { status: 'cancelled', updatedAt: new Date() },
+                    $push: {
+                        statusHistory: {
+                            status: 'cancelled',
+                            timestamp: new Date(),
+                            by: socket.id,
+                            note: data.reason || 'Cancelled by customer'
+                        }
+                    }
+                }
+            )
+
+            io.to(`order-${data.orderId}`).emit('orderCancelled', { orderId: data.orderId });
+            io.to('admins').emit('orderCancelled', { orderId: data.orderId, customerName: order.customerName });
+
+            Callback({ success: true });
+        } catch (error) {
+            console.error("order cancel error: ", error);
+            Callback({ success: false, message: error.message });
+        }
+    })
+
 }
