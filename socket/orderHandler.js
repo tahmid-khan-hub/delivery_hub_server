@@ -84,4 +84,19 @@ export const orderHandler = (io, socket) => {
         }
     })
 
+    // Get my orders
+    socket.on("getMyOrders", async(data, Callback) => {
+        try {
+            const ordersCollection = getCollection('orders')
+            const orders = await ordersCollection.find({ 
+                customerPhone: data.customerPhone
+            }).sort({ createdAt: -1 }).limit(20).toArray();
+
+            Callback({ success: true, orders });
+        } catch (error) {
+            console.error("get my orders error: ", error);
+            Callback({ success: false, message: error.message });
+        }
+    })
+
 }
