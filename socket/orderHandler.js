@@ -1,5 +1,6 @@
+import { ReturnDocument } from "mongodb";
 import { getCollection } from "../config/database.js";
-import { calculateTotals, createOrderDocument, generateOrderId, validateOrder } from "../utils/helper.js";
+import { calculateTotals, createOrderDocument, generateOrderId, isValidStatusTransition, validateOrder } from "../utils/helper.js";
 
 export const orderHandler = (io, socket) => {
     console.log("working smooth!!!!!!!!!!!!!", socket.id);
@@ -127,6 +128,41 @@ export const orderHandler = (io, socket) => {
             const orders = await ordersCollection.find(filter).sort({ createdAt: -1 }).limit(20).toArray();
 
             Callback({ success: true, orders });
+        } catch (error) {
+            Callback({ success: false, message: error.message });
+        }
+    })
+
+    // Admin update order status
+    socket.on("updateOrderStatus", async(data, Callback) => {
+        try {
+            const ordersCollection = getCollection('orders');
+            const order = await ordersCollection.findOne({ orderId: data.orderId });
+
+            if(!order) return Callback({ success: false, message: "Order not found" })
+
+            if(!isValidStatusTransition(order.status, data.newStatus)) return Callback({ success: false, message: "Invalid status transition" })
+
+            const result = await ordersCollection.findOneAndUpdate(
+                { orderId: data.orderId },
+                {
+                    $set: { status: data.newStatus, updatedAt: new Date() },
+                    $push: { 
+                        statusHistory: {
+                            status: data.newStatus,
+                            timestamp: new Date(),
+                            by: socket.id,
+                            note: "Status updated by admin"
+                        }
+                    }
+                },
+                { ReturnDocument: 'after' }
+            )
+
+            io.to(`order-${data.orderId}`).emit('statusUpdated', { orderId: data.orderId, status: data.newStatus, order: result });
+            socket.to('admin').emit("order status changed", { orderId: data.orderId, status: data.newStatus });
+
+            Callback({ success: true, order: result });
         } catch (error) {
             Callback({ success: false, message: error.message });
         }
