@@ -117,4 +117,19 @@ export const orderHandler = (io, socket) => {
         }
     })
 
+    // Admin get all orders
+    socket.on("getAllOrders", async(data, Callback) => {
+        try {
+            if(!socket.isAdmin) return Callback({ success:false, message: "Unauthorized" })
+
+            const ordersCollection = getCollection('orders');
+            const filter = (data?.status)? {status: data.status} : {};
+            const orders = await ordersCollection.find(filter).sort({ createdAt: -1 }).limit(20).toArray();
+
+            Callback({ success: true, orders });
+        } catch (error) {
+            Callback({ success: false, message: error.message });
+        }
+    })
+
 }
