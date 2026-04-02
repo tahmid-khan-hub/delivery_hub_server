@@ -168,4 +168,40 @@ export const orderHandler = (io, socket) => {
         }
     })
 
+    // Admin accepting order
+    socket.io("acceptOrder", async(data, Callback) => {
+        try {
+            if(!socket.isAdmin) return Callback({ success:false, message: "Unauthorized" })
+
+            const ordersCollection = getCollection('orders');
+            const order = await ordersCollection.findOne({ orderId: data.orderId });
+
+            if(!order || order.status !== "pending") return Callback({ success: false, message: "Can't accept this order" }) ;
+
+            const estimatedTime = data.estimatedTime || 30;
+            const result = await ordersCollection.findOneAndUpdate(
+                { orderId: data.orderId },
+                {
+                    $set: { status: "confirmed", estimatedTime, updatedAt: new Date() },
+                    $push: { 
+                        statusHistory: {
+                            status: "confirmed",
+                            timestamp: new Date(),
+                            by: socket.id,
+                            note: `Accepted with ${estimatedTime} min estimated time`
+                        }
+                    }         
+                },
+                { ReturnDocument: "after" }
+            )
+
+            io.to(`order-${data.orderId}`).emit("orderAccepted", { orderId: data.orderId, estimatedTime });
+            socket.on("admins").emit("orderAcceptedByAdmin", { orderId: data.orderId })
+
+            Callback({ success: true, order: result });
+        } catch (error) {
+            Callback({ success: false, message: error.message });
+        }
+    })
+
 }
