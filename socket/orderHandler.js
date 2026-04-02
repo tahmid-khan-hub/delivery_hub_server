@@ -204,4 +204,39 @@ export const orderHandler = (io, socket) => {
         }
     })
 
+    // Admin rejecting order
+    socket.on("rejectOrder", async(data, Callback) => {
+        try {
+            if(!socket.isAdmin) return Callback({ success:false, message: "Unauthorized" })
+
+            const ordersCollection = getCollection('orders');
+            const order = await ordersCollection.findOne({ orderId: data.orderId });
+
+            if(!order || order.status !== "pending") return Callback({ success: false, message: "Admin reject this order" }) ;
+
+            await ordersCollection.findOneAndUpdate(
+                { orderId: data.orderId },
+                {
+                    $set: { status: "cancelled", estimatedTime, updatedAt: new Date() },
+                    $push: { 
+                        statusHistory: {
+                            status: "cancelled",
+                            timestamp: new Date(),
+                            by: socket.id,
+                            note: `Order rejected by admin`
+                        }
+                    }         
+                },
+                { ReturnDocument: "after" }
+            )
+
+            io.to(`order-${data.orderId}`).emit("orderRejected", { orderId: data.orderId, reason: data.reason });
+            socket.on("admins").emit("orderRejectedByAdmin", { reason: data.reason })
+
+            Callback({ success: true });
+        } catch (error) {
+            Callback({ success: false, message: error.message });
+        }
+    })
+
 }
